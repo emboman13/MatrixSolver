@@ -27,13 +27,13 @@ def load_model():
         metrics = ['accuracy']
         )
 
-    model.load_weights('/Users/johnbensen/Documents/matrixbullshit/matrix_backend/matrix_process/model.h5')
+    model.load_weights('model.h5')
 
     return model
 
 def remove_white_space(image):
     height, width = image.shape
-    x, y = height // 20, width // 20
+    x, y = height // 50, width // 50
 
     for edge in range(4):
         while True:
@@ -63,14 +63,14 @@ def convert_to_square(image):
     height, width = image.shape
 
     if height > width:
-        blankMatrix = np.zeros(((height - width) // 2, height))
-        image       = np.concatenate((blankMatrix, image, blankMatrix), axis=0)
-
-    if width > height:
-        blankMatrix = np.zeros((height, (width - height) // 2))
+        blankMatrix = np.zeros((height, (height - width) // 2))
         image       = np.concatenate((blankMatrix, image, blankMatrix), axis=1)
 
-    image = np.pad(image, [(20, 20), (20, 20)], mode='constant')
+    if width > height:
+        blankMatrix = np.zeros(((width - height) // 2, height))
+        image       = np.concatenate((blankMatrix, image, blankMatrix), axis=0)
+
+    image = np.pad(image, [(5, 5), (5, 5)], mode='constant')
     image = image / np.max(image)
     image[image < .5] = 0.0
     image[image > .5] = 1.0
@@ -80,70 +80,79 @@ def convert_to_square(image):
 def compress_image(image):
     compressedImage = np.zeros((28, 28))
     width, height = image.shape
-    width, height = width // 28, height // 28
+    width, height = width / 28, height / 28
 
     for row in range(28):
         for col in range(28):
-            compressedImage[row, col]  = np.sum(np.sum(image[row * height: (row + 1) * height, col * width: (col + 1) * width]))
+            rowStart, rowEnd = int(row * height), int((row + 1) * height)
+            colStart, colEnd = int(col * width), int((col + 1) * width)
+            compressedImage[row, col]  = np.sum(np.sum(image[rowStart: rowEnd, colStart: colEnd]))
             compressedImage[row, col] /= (width * height)
 
     return compressedImage
 
-model = load_model()
 
-@csrf_exempt
-def process_image(request):
-    image = request.FILES['media']
-    path = default_storage.save('test.jpg', ContentFile(image.read()))
+def process_image():
+    model = load_model()
 
-    rawImage = np.array(img.imread('test.jpg'))
+    # image = request.FILES['media']
+    # path = default_storage.save('test.jpg', ContentFile(image.read()))
 
-    topXRatio = float(request.POST['top_x'])
-    botXRatio = float(request.POST['bot_x'])
-    topYRatio = float(request.POST['top_y'])
-    botYRatio = float(request.POST['bot_y'])
-    print(topXRatio, botXRatio, topYRatio, botYRatio)
+    rawImage = np.array(img.imread('../test.jpg'))
+
+    # topXRatio = .548
+    # botXRatio = .1939
+    # topYRatio = .586
+    # botYRatio = .374
+
+    topXRatio = 1 - .1939
+    botXRatio = 1 - .548
+    topYRatio = .586
+    botYRatio = .374
+
     image = np.sum(rawImage, axis=2)
-
+    
     totalWidth = len(image[0])
     totalHeight = len(image)
     
-    topX = int(topXRatio * totalWidth)
-    botX = int(botXRatio * totalWidth)
-    topY = int(topYRatio * totalHeight)
-    botY = int(botYRatio * totalHeight)
+    topX = int(topXRatio * totalHeight)
+    botX = int(botXRatio * totalHeight)
+    topY = int(topYRatio * totalWidth)
+    botY = int(botYRatio * totalWidth)
 
-    rowLength = (topX - botX) // 3
-    colLength = (topY - botY) // 3
     matrix = []
-    results = []
+
+    image = np.rot90(image[botX:topX, botY:topY], k=3)
+
+    colLength, rowLength = image.shape
+    colLength, rowLength = colLength // 3, rowLength // 3
 
     for col in range(3):
+        results = []
         for row in range(3):
-            bot_x = botX + row * rowLength 
+            bot_x = row * rowLength 
             top_x = bot_x + rowLength
 
-            bot_y = botY + col * colLength
+            bot_y = col * colLength
             top_y = bot_y + colLength
 
             tempImg = image[bot_y:top_y, bot_x:top_x]
-            tempImg = np.abs((tempImg - np.max(tempImg)) / np.max(tempImg))
+            tempImg = np.abs((tempImg / np.max(tempImg)) - 1)
             tempImg = remove_white_space(tempImg)
             tempImg = convert_to_square(tempImg)
             tempImg = compress_image(tempImg)
-            # print(np.round(tempImg, 2))
+
+            tempImg = tempImg / np.max(tempImg)
+
             # transforming image
             tempImg = tempImg.reshape((-1,784))
             # caluclations
             number = np.argmax(model.predict(tempImg))
             results.append(number)
+        matrix.append(results)
 
-            plt.figure(3 * row + col)
-            plt.imshow(tempImg)
-            plt.colorbar()
-            plt.savefig("%d_%d.png" % (row, col))
-
-    return HttpResponse(status=200)
+    print(matrix)
+    # return HttpResponse(status=200)
 
 @csrf_exempt
 def determinant(request):
@@ -176,3 +185,6 @@ def solve(request):
     print(newMatrix)
     newMatrix = str(newMatrix)
     return HttpResponse(newMatrix)
+
+if __name__ == '__main__':
+    process_image()

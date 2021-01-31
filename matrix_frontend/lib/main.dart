@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:io';
-import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 // import 'package:image/image.dart';
@@ -139,7 +137,7 @@ class _CameraScreenState extends State<CameraScreen> {
                     return Expanded(
                         child: Center(child: CameraPreview(_controller)));
                   }
-                } else {
+                } else {//
                   return Center(
                       child:
                           CircularProgressIndicator()); // Otherwise, display a loading indicator.
