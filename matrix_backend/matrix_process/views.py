@@ -151,8 +151,7 @@ def process_image():
             results.append(number)
         matrix.append(results)
 
-    print(matrix)
-    # return HttpResponse(status=200)
+    return HttpResponse(status=200)
 
 @csrf_exempt
 def determinant(request):
@@ -184,6 +183,7 @@ def solve(request):
     solutions = np.array(matrix[1])
     print(newMatrix)
     newMatrix = str(newMatrix)
+
     return HttpResponse(newMatrix)
 
 if __name__ == '__main__':
