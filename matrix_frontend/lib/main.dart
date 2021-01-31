@@ -6,6 +6,8 @@ import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'solve_matrix.dart';
+
 void main() {
   runApp(MyApp());
 }
@@ -16,7 +18,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(body: CameraScreen()),
-      // home: MatrixView(),
     );
   }
 }
@@ -33,15 +34,19 @@ class _CameraScreenState extends State<CameraScreen> {
   bool showCapturedPhoto = false;
   String imagePath;
 
-  double _xVal_1 = 5.0;
-  double _xVal_2 = 5.0;
-  double _yVal_1 = 5.0;
-  double _yVal_2 = 5.0;
+  double _xVal_1;
+  double _xVal_2;
+  double _yVal_1;
+  double _yVal_2;
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
+    _xVal_1 = 5.0;
+    _xVal_2 = 5.0;
+    _yVal_1 = 5.0;
+    _yVal_2 = 5.0;
   }
 
   Future<void> _initializeCamera() async {
@@ -294,7 +299,15 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         ),
         FlatButton(
-            onPressed: () async => await _readMatrix(widgetWidth, widgetHeight),
+            onPressed: () async {
+              List<List<int>> matrix =
+                  await _readMatrix(widgetWidth, widgetHeight);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => SolveMatrix(matrix: matrix)),
+              );
+            },
             child: Text("Calculate")),
       ],
     );
