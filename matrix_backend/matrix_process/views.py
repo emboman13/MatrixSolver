@@ -15,6 +15,7 @@ import ast
 import sympy
 
 import copy 
+import os
 
 def load_model():
     model = Sequential()
@@ -91,24 +92,19 @@ def compress_image(image):
 
     return compressedImage
 
-
-def process_image():
+@csrf_exempt
+def process_image(request):
     model = load_model()
 
-    # image = request.FILES['media']
-    # path = default_storage.save('test.jpg', ContentFile(image.read()))
+    image = request.FILES['media']
+    path = default_storage.save('test.jpg', ContentFile(image.read()))
+    rawImage = np.array(img.imread('test.jpg'))
+    os.remove('test.jpg')
 
-    rawImage = np.array(img.imread('../test.jpg'))
-
-    # topXRatio = .548
-    # botXRatio = .1939
-    # topYRatio = .586
-    # botYRatio = .374
-
-    topXRatio = 1 - .1939
-    botXRatio = 1 - .548
-    topYRatio = .586
-    botYRatio = .374
+    topXRatio = 1 - float(request.POST["bot_x"])
+    botXRatio = 1 - float(request.POST["top_x"])
+    topYRatio = float(request.POST["top_y"])
+    botYRatio = float(request.POST["bot_y"])
 
     image = np.sum(rawImage, axis=2)
     
@@ -149,9 +145,10 @@ def process_image():
             # caluclations
             number = np.argmax(model.predict(tempImg))
             results.append(number)
-        matrix.append(results)
 
-    return HttpResponse(status=200)
+        matrix.append(results)
+    print(matrix)
+    return JsonResponse({"matrix": str(matrix)})
 
 @csrf_exempt
 def determinant(request):
